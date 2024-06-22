@@ -54,3 +54,70 @@ def main(argv=sys.argv[1:]):
             cmd_tag(args)
         case _:
             argparser.print_help()
+
+
+class GotRepository(object):
+    """A git style "got" repository
+
+    The worktree of a got repository is the directory where the files are, and the gotdir is where the got data is stored.
+
+
+    To create a got repo, we need to check that the directory exists, and that it contains a ".got" directory; that it has a .got/config file and that the core.repositoryformatversion
+    is set to 0.
+
+    "force" is a flag that allows you to create a got repository in the current directory, even if there are files in it, required for the repo-create command that will use this class.
+    If force is True, we disable all the above checks.
+
+
+    """
+
+    worktree = None
+    gotdir = None
+    conf = None
+
+    def __init__(self, path=".", force=False):
+        self.worktree = path
+        self.gotdir = os.pardir(path, ".got")
+
+        if not (force or os.path.isdir(self.gotdir)):
+            raise Exception(f"Not a got repository {path}")
+
+        self.conf = configparser.ConfigParser()
+        cf = repo_file(self, "config")
+
+
+def repo_path(repo, *path):
+    """Compute path under repo's gotdir.
+
+    Path is variadic, accepting all further arguments as a sequence.
+    """
+    return os.path.join(repo.gotdir, *path)
+
+
+def repo_file(repo, *path, mkdir=False):
+    """Same as repo_path, but creates a directory of dirname(*path) if it is absent. For files.
+
+    example: repo_file(repo, "refs", "remotes", "origin", "HEAD") creates the directory refs/remotes/origin.
+    """
+    if repo_dir(repo, *path[:-1], mkdir=mkdir):
+        return repo_path(repo, *path)
+
+
+def repo_dir(repo, *path, mkdir=False):
+    """Same as repo_path, but creates a directory of dirname(*path) if it is absent. For directories.
+
+    example: repo_dir(repo, "refs", "remotes", "origin") creates the directory refs/remotes/origin.
+    """
+    path = repo_path(repo, *path)
+
+    if os.path.exists(path):
+        if os.path.isdir(path):
+            return path
+        else:
+            raise Exception(f"Not a directory {path}")
+
+    if mkdir:
+        os.makedirs(path)
+        return path
+    else:
+        return None
