@@ -85,6 +85,16 @@ class GotRepository(object):
         self.conf = configparser.ConfigParser()
         cf = repo_file(self, "config")
 
+        if cf and os.path.exists(cf):
+            self.conf.read([cf])
+        elif not force:
+            raise Exception("Configuration file missing")
+
+        if not force:
+            vers = int(self.conf.get("core", "repositoryformatversion"))
+            if vers != 0:
+                raise Exception(f"Unsupported repositoryformatversion {vers}")
+
 
 def repo_path(repo, *path):
     """Compute path under repo's gotdir.
